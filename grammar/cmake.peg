@@ -1,0 +1,260 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Nicolas Martin. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+ 
+ /*
+ * This is a PEG.js grammar for CMake language 
+ */
+{
+// temporary variables used for brackets_arguments
+   var bracket_open_size = 0
+   var bracket_close_size = 0;
+
+   function size_need(list) {
+    var size =  list.reduce(function(cur, prev){ return cur.Length + prev ;}, 0);
+    return size;
+   }
+   // given a list of list return a flatten array
+   function flatten(list) {
+      var result = new Array(1 + list[2].length), i;
+      result[0] = list[1][0];
+      for (i = 0; i < list[2].length; i++) {
+        result[i+1] = list[2][i];
+      }
+      return result.join('');
+   }
+}
+/* Source Files
+ * file         ::=  file_element*
+ * file_element ::=  command_invocation line_ending |
+ *                   command_invocation (bracket_comment|space)* line_ending
+ * line_ending  ::=  line_comment? newline
+ * space        ::=  <match '[ \t]+'>
+ * newline      ::=  <match '\n'>
+ */
+ 
+ file = elts:(file_element*) {return elts.reduce(function(p, c){return p.concat(c);},[]);}
+ 
+ file_element = 
+      first:(statement?) brackets:(bracket_comment_or_space*) eol:line_ending 
+      { 
+        var a = first?[first]:[];
+        var result =brackets.reduce(function(p, c){return p.concat(c);}, a);
+        result.push(eol);
+        return result;
+      }
+ 
+ bracket_comment_or_space = bracket_comment / space
+ 
+ line_ending = first:(line_comment?) second:newline 
+    {
+    var result = first?first:second
+    return result;
+    }
+
+ space = [\ \t]
+ 
+ newline = ('\r\n' / [\n\r] ) {return {type:'newline'}}
+ 
+ statement = 
+    command_invocation 
+    / if_statement
+    / function_statement
+    / macro_statement
+    / foreach_statement
+    / while_statement
+ 
+/*
+ * Command Invocations
+ * A command invocation is a name followed by paren-enclosed arguments separated by whitespace:
+ * 
+ * command_invocation  ::=  space* identifier space* '(' arguments ')'
+ * identifier          ::=  <match '[A-Za-z_][A-Za-z0-9_]*'>
+ * arguments           ::=  argument? separated_arguments*
+ * separated_arguments ::=  separation+ argument? |
+ *                          separation* '(' arguments ')'
+ * separation          ::=  space | line_ending
+ */
+ 
+command_invocation = space* name:identifier space* '(' args:arguments ')' 
+{ return {type : "command_invocation", name:name, args:args } } 
+
+identifier = !reserved_word first:[A-Za-z_](second:[A-Za-z0-9_]*) 
+    { return first + second.join('') }
+
+arguments = first:argument? others:(separated_arguments*) {
+    if (!first) {
+        return [];
+    }else {
+        return others.reduce( function(p, c){return p.concat(c);}, [first]);
+    }
+  }
+
+separated_arguments = 
+      separation+ arg:(argument?)  { 
+      return arg?[arg]:[];
+     }
+    / separation* '(' arguments ')'
+
+separation = space / line_ending
+
+/*
+ * Command Arguments
+ * There are three types of arguments within Command Invocations:
+ * 
+ * argument ::=  bracket_argument | quoted_argument | unquoted_argument 
+ */
+
+argument = bracket_argument / quoted_argument / unquoted_argument
+
+/*
+ * Bracket Argument
+ * 
+ * A bracket argument, inspired by Lua long bracket syntax, encloses content between opening and closing “brackets” of the same length:
+ * 
+ * bracket_argument ::=  bracket_open bracket_content bracket_close
+ * bracket_open     ::=  '[' '='{len} '['
+ * bracket_content  ::=  <any text not containing a bracket_close
+ *                        of the same {len} as the bracket_open>
+ * bracket_close    ::=  ']' '='{len} ']'
+ */
+
+
+bracket_argument = bracket_open value:bracket_content {return {type: 'bracket_argument', value:value.join('')}}
+bracket_open = '[' s:('='+) '[' {
+	bracket_open_size = s.length
+  }
+
+bracket_content = 
+	bracket_close &{ return bracket_open_size == bracket_close_size} {return []}  
+  / c:. then:bracket_content {return [c].concat(then) }
+
+bracket_close = ']' s:('='+) ']' {bracket_close_size = s.length}
+
+
+/* Quoted Argument
+ * 
+ * A quoted argument encloses content between opening and closing double-quote characters:
+ * 
+ * quoted_argument     ::=  '"' quoted_element* '"'
+ * quoted_element      ::=  <any character except '\' or '"'> |
+ *                          escape_sequence |
+ *                          quoted_continuation
+ * quoted_continuation ::=  '\' newline
+ */ 
+ 
+/* quoted_argument = '"' quoted_element* '"'*/
+quoted_argument = '"' value:(quoted_element*) '"'  {return {type: 'quoted_argument', value:value.join('')}}
+ 
+ quoted_element =  
+      [^"\\] 
+    / escape_sequence 
+    / quoted_continuation
+ 
+ quoted_continuation = '\\' newline
+ 
+/* Unquoted Argument
+ * An unquoted argument is not enclosed by any quoting syntax. It may not contain any whitespace, (, ), #, ", or \ except when escaped by a backslash:
+ * 
+ * unquoted_argument ::=  unquoted_element+ | unquoted_legacy
+ * unquoted_element  ::=  <any character except whitespace or one of '()#"\'> |
+ *                        escape_sequence
+ */
+unquoted_argument = value:(unquoted_element+) {return {type: 'unquoted_argument', value:value.join('')}} 
+unquoted_element = [^()#"\\\ \t\r\n] / escape_sequence
+
+/* Escape Sequences
+ * An escape sequence is a \ followed by one character:
+ * 
+ * escape_sequence  ::=  escape_identity | escape_encoded | escape_semicolon
+ * escape_identity  ::=  '\(' | '\)' | '\#' | '\"' | '\ ' |
+ *                       '\\' | '\$' | '\@' | '\^'
+ * escape_encoded   ::=  '\t' | '\r' | '\n'
+ * escape_semicolon ::=  '\;' 
+ */
+escape_sequence = escape_identity / escape_encoded / escape_semicolon
+escape_identity = '\\' [()#" \\$@^]
+escape_encoded  = '\\r' / '\\n' / '\\t' // [trn]
+escape_semicolon = '\\;'
+
+/* Bracket Comment
+ *
+ * A # immediately followed by a Bracket Argument forms a bracket comment consisting of the entire bracket enclosure:
+ *
+ * bracket_comment ::=  '#' bracket_argument 
+ */
+
+bracket_comment = '#' bracket_argument
+
+/* Line Comment
+ * 
+ * A # not immediately followed by a Bracket Argument forms a line comment that runs until the end of the line:
+ * 
+ * line_comment ::=  '#' <any text not starting in a bracket_argument
+ *                        and not containing a newline>
+ */
+line_comment = '#' value:([^\n\r]*) 
+    { return {type: 'comment', value:value.join('')} }
+    
+
+/* Conditional Blocks
+ * The if()/elseif()/else()/endif() commands delimit code blocks to be executed conditionally.
+ */
+ 
+ reserved_word = 
+     'if'
+   / 'else'
+   / 'elseif'
+   / 'endif'
+   / 'function'
+   / 'endfunction'
+   / 'macro'
+   / 'endmacro'
+   / 'foreach'
+   / 'endforeach'
+   / 'while'
+   / 'endwhile'
+   
+ if_statement =    
+    space* 'if' space* '(' arguments ')'
+      body:(file_element*)
+    (
+    space* 'elseif' space* '(' arguments ')'
+      body:(file_element*)
+    )+
+    (space* 'else' space* '(' arguments ')'
+      body:(file_element*))?
+    space* 'endif' space* '(' arguments ')'  {return {type:"if", body:body};}
+    /
+    space* 'if' space* '(' arguments ')'
+      body:(file_element*)
+    (
+    space* 'else' space* '(' arguments ')'
+      body:(file_element*)
+    )?
+    space* 'endif' space* '(' arguments ')'  {return {type:"if", body:body};}
+
+function_statement = 
+    space* 'function' space* '(' name:identifier args:arguments ')'
+      body:(file_element*)
+    space* 'endfunction' space* '('arguments ')' 
+    { return {type: 'function', name:name, arguments:args, body:body } }
+    
+macro_statement = 
+    space* 'macro' space* '(' name:identifier args:arguments ')'
+      body:(file_element*)
+    space* 'endmacro' space* '('arguments ')' 
+    { return {type: 'macro', name:name, arguments:args, body:body } }
+
+foreach_statement = 
+    space* 'foreach' space* '(' args:arguments ')'
+      body:(file_element*)
+    space* 'endforeach' space* '('arguments ')' 
+    { return {type: 'foreach', name:name, arguments:args, body:body } }
+
+while_statement = 
+    space* 'while' space* '(' args:arguments ')'
+      body:(file_element*)
+    space* 'endwhile' space* '(' arguments ')' 
+    { return {type: 'while', name:name, arguments:args, body:body } }
