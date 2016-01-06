@@ -1,7 +1,9 @@
-# PEGCMake
+# peg-cmake
 
-peg-cmake is a simple CMake parser written in javascript.
+peg-cmake is a simple CMake parser written in javascript. 
+It aims to provide a core lib for tools suche as formatting, refactoring, etc... 
 
+The library is under developement and not stable.   
 
  ## Usage
  
