@@ -2,3 +2,5 @@
 node_modules
 test.js
 #grammar/cmake.js
+.browse.VC.db
+outputdir/*

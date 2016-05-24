@@ -85,19 +85,33 @@ identifier = !reserved_word first:[A-Za-z_](second:[A-Za-z0-9_]*)
 
 arguments = first:argument? others:(separated_arguments*) {
     if (!first) {
-        return [];
+        return others.reduce( function(p, c){return p.concat(c);}, []);
     }else {
         return others.reduce( function(p, c){return p.concat(c);}, [first]);
     }
   }
 
 separated_arguments = 
-      separation+ arg:(argument?)  { 
-      return arg?[arg]:[];
+      sep:(separation+) arg:(argument?)  { 
+      sep = sep.filter((e)=>{return e !== null});
+      if(arg)
+      sep.push(arg);
+      return sep;
      }
-    / separation* '(' arguments ')'
+    / sep:(separation*) '(' arguz:(arguments?) ')' {
+      sep = sep.filter((e)=>{return e !== null});
+      if(arguz)
+      sep.push(arguz);
+      return sep;
+      
+    }
 
-separation = space / line_ending
+separation = sp:(space) {return null;}/ eol:(line_ending) {
+  if(eol)
+    return eol;
+  else
+   return null;
+}
 
 /*
  * Command Arguments
@@ -217,44 +231,72 @@ line_comment = '#' value:([^\n\r]*)
    / 'endwhile'
    
  if_statement =    
-    space* 'if' space* '(' arguments ')'
+    space* 'if' space* '(' pred:arguments ')'
       body:(file_element*)
-    (
+    __elseif: (
     space* 'elseif' space* '(' arguments ')'
-      body:(file_element*)
+      (file_element*)
     )+
-    (space* 'else' space* '(' arguments ')'
-      body:(file_element*))?
-    space* 'endif' space* '(' arguments ')'  {return {type:"if", body:body};}
+    __else:(space* 'else' space* '(' arguments ')'
+      (file_element*))?
+    space* 'endif' space* '(' arguments ')'  {
+      return {
+        "type": "if", 
+        "predicate": pred, 
+        "body": body.reduce(function(c, p){return c.concat(p)}, []),
+        "elseif": __elseif.map((array)=>{
+          return {
+            "predicate" : array[4],
+            "body" : array[6].reduce(function(c, p){return c.concat(p)}, [])
+          }
+        }),        
+        "else":__else?{
+              "predicate" : __else[4],
+              "body":__else[6].reduce(function(c, p){return c.concat(p)}, [])
+            }:null
+      }
+    }
+        
     /
-    space* 'if' space* '(' arguments ')'
+    space* 'if' space* '(' pred:arguments ')'
       body:(file_element*)
-    (
+    __else:(
     space* 'else' space* '(' arguments ')'
-      body:(file_element*)
+      (file_element*)
     )?
-    space* 'endif' space* '(' arguments ')'  {return {type:"if", body:body};}
+    space* 'endif' space* '(' arguments ')'  {
+        return {
+            "type":"if", 
+            "predicate":pred, 
+            "body":body.reduce(function(c, p){return c.concat(p)}, []),
+            "else":__else?{
+              "predicate" : __else[4],
+              "body":__else[6].reduce(function(c, p){return c.concat(p)}, [])
+            }:null
+        };
+    }
 
 function_statement = 
     space* 'function' space* '(' name:identifier args:arguments ')'
       body:(file_element*)
     space* 'endfunction' space* '('arguments ')' 
-    { return {type: 'function', name:name, arguments:args, body:body } }
+    { return {type: 'function', name:name, arguments:args, 
+        body:body.reduce(function(c, p){return c.concat(p)}, []) } }
     
 macro_statement = 
     space* 'macro' space* '(' name:identifier args:arguments ')'
       body:(file_element*)
     space* 'endmacro' space* '('arguments ')' 
-    { return {type: 'macro', name:name, arguments:args, body:body } }
+    { return {type: 'macro', name:name, arguments:args, body:body.reduce(function(c, p){return p.concat(c)}, []) } }
 
 foreach_statement = 
     space* 'foreach' space* '(' args:arguments ')'
       body:(file_element*)
     space* 'endforeach' space* '('arguments ')' 
-    { return {type: 'foreach', name:name, arguments:args, body:body } }
+    { return {type: 'foreach', arguments:args, body:body.reduce(function(c, p){return p.concat(c)}, []) } }
 
 while_statement = 
     space* 'while' space* '(' args:arguments ')'
       body:(file_element*)
     space* 'endwhile' space* '(' arguments ')' 
-    { return {type: 'while', name:name, arguments:args, body:body } }
+    { return {type: 'while', arguments:args, body:body.reduce(function(c, p){return p.concat(c)}, []) } }

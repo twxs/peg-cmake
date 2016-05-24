@@ -6,10 +6,10 @@
 			"name": "Launch",
 			"type": "node",
 			"request": "launch",
-			"program": "test/test.js",
+			"program": "${workspaceRoot}/test/cmake-format.js",
 			"stopOnEntry": false,
 			"args": [],
-			"cwd": ".",
+			"cwd": "${workspaceRoot}",
 			"runtimeExecutable": null,
 			"runtimeArgs": [
 				"--nolazy"
