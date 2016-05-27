@@ -2,29 +2,43 @@ var CMake = require('../');
 
 var fs = require('fs');
 
+
+var FormatConfig = {
+  UseTab:false,
+  IndentWidth: 4, // space
+  ContinuationIndentWidth: 4,
+  ColumnLimit: 100,
+  AllowedBlankLines: 1,
+  AlignAfterOpenBracket : "BAS_Align",
+  TrimComments: true 
+  
+}
+
 // Simple CMake code formater ASTMatcher
 // result will contain the indented buffer
 // tabSize : number of space per TAB
 //
-function CMakeCodeFormater(){
+function CMakeCodeFormater(config){
   this._indent =  0;
-  // how many space
-  this.tabSize = 2;
+  
   
   this.tab = ()=>{
-    this._indent+= this.tabSize;
+    this._indent+= config.IndentWidth;
   };
   this.untab = ()=>{
-    this.result = this.result.substr(0, this.result.length-this.tabSize);
-    this._indent-= this.tabSize;
+    this.result = this.result.substr(0, this.result.length-config.IndentWidth);
+    this._indent-= config.IndentWidth;
   };
   
   // Storage
   this.result = "";
   
   this.toString = (string) => {return string ;};
-  this.print = (string) => {this.result += this.toString(string);
-    this.newlineEmitted = 0;};
+  
+  this.print = (string) => {
+    this.result += this.toString(string);
+    this.newlineEmitted = 0;
+  };
  
   this.eol = ()=>{
     return "\n" + this.indentString();
@@ -33,32 +47,55 @@ function CMakeCodeFormater(){
   this.indentString = ()=>{
     return this._indent>0?Array(this._indent+1).join(" "):"";
   };
+  
   this.newlineEmitted = 0;
+  
   this.newline =  (elt) => {
-     if(this.newlineEmitted < 2)
+     if(this.newlineEmitted <= config.AllowedBlankLines)
       this.result += this.eol();
     this.newlineEmitted++;
   };
   
   this.comment = (comment)=>{ 
-    this.print(this.toString("# " + comment.value.trim() + this.eol()));
+    if(config.TrimComments)
+      this.print(this.toString("# " + comment.value.trim()));
+    else
+      this.print(this.toString("#" + comment.value))
+    this.print(this.eol());
   };
   
   this.unquoted_argument = (elt)=>{ 
     return elt.value; 
   };
+  
   this.quoted_argument = (elt)=>{ return "\"" + elt.value + "\""; };
   
   this.current_column = ()=>{
     var index = this.result.lastIndexOf("\n") + 1;
     return (index==0)?this.result.length :this.result.length - (index+1);
   }
+  
+  function openBracket(len){    
+    return "[" + Array(len+1).join("=") +"[";
+  }
+  function closeBracket(len){
+    return "]" + Array(len+1).join("=") +"]";
+  }
+  
   this.arguments = (args)=>{
     var com = this.comment;    
     var nl = this.newline;   
+    var bc = this.bracket_comment;
+    var ba = this.bracket_argument;
     this.newline = (e)=>{return this.eol()}; 
     this.comment = (comment)=>{ 
       return this.toString("# " + comment.value.trim() + this.eol());
+    };
+    this.bracket_comment = (comment)=>{ 
+      return this.toString("#" + openBracket(comment.len) + comment.value + closeBracket(comment.len));
+    };
+     this.bracket_argument = (comment)=>{ 
+      return this.toString( openBracket(comment.len)  + comment.value + closeBracket(comment.len));
     };
     var backup = this._indent;
     this._indent = this.current_column();
@@ -75,6 +112,8 @@ function CMakeCodeFormater(){
     this._indent = backup;  
     this.comment = com; 
     this.newline = nl;
+    this.bracket_comment = bc;
+    this.bracket_argument = ba;
     return res;
   }
   
@@ -92,7 +131,7 @@ function CMakeCodeFormater(){
   }
   
   this.command_invocation = (elt)=>{
-    this.invoke(elt.name, elt.args);
+    this.invoke(elt.identifier, elt.arguments);
   };
   
   this.func = (elt, name)=>{
@@ -167,6 +206,14 @@ function CMakeCodeFormater(){
     this.invoke("endif", []);
   }
   
+  this.bracket_argument = (elt)=>{
+    this.print(openBracket(elt.len) + elt.value + closeBracket(elt.len));
+  }
+  
+  this.bracket_comment = (elt)=>{
+    this.print("#" + openBracket(elt.len) + elt.value + closeBracket(elt.len));
+  }
+  
 }
 
 function traversAST(ast, matcher) {
@@ -182,12 +229,12 @@ fs.readFile('test/CMakeLists.txt', 'utf8', function (err,data) {
     return console.log(err);
   }
   try {
-  var result = CMake.Parser.parse(data);
-  var formater = new CMakeCodeFormater();
+  var result = CMake.parse(data);
+  var formater = new CMakeCodeFormater(FormatConfig);
   traversAST(result, formater);
   process.stdout.write(formater.result);
 //  printElements(result);
-  //console.log(JSON.stringify(result, null, 2));
+  console.log(JSON.stringify(result, null, 2));
   for(var i = 0; i != result.length; ++i){
       var statement = result[i];
    //   console.log(statement.type); 

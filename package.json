@@ -14,7 +14,7 @@
   "scripts": {
     "test": "grunt nodeunit"
   },
-  "author": "twxs",
+  "author": "twxs <twxs@free.fr> (https://github.com/twxs)",
   "license": "MIT",
   "repository": {
     "type": "git",

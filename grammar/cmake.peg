@@ -55,7 +55,12 @@
 
  space = [\ \t]
  
- newline = ('\r\n' / [\n\r] ) {return {type:'newline'}}
+ newline = ('\r\n' / [\n\r] ) {
+  return {
+    location: location(),
+    type:"newline"
+  }
+ }
  
  statement = 
     command_invocation 
@@ -78,7 +83,13 @@
  */
  
 command_invocation = space* name:identifier space* '(' args:arguments ')' 
-{ return {type : "command_invocation", name:name, args:args } } 
+{ return {
+    location: location(),
+    type: "command_invocation", 
+    identifier: name,
+    arguments: args 
+  }
+} 
 
 identifier = !reserved_word first:[A-Za-z_](second:[A-Za-z0-9_]*) 
     { return first + second.join('') }
@@ -98,21 +109,24 @@ separated_arguments =
       sep.push(arg);
       return sep;
      }
-    / sep:(separation*) '(' arguz:(arguments?) ')' {
+    / sep:(separation*) '(' args:(arguments?) ')' {
       sep = sep.filter((e)=>{return e !== null});
-      if(arguz)
-      sep.push(arguz);
-      return sep;
-      
+      if (args !== null) {
+        sep.push(args);
+      }
+      return sep;      
     }
 
-separation = sp:(space) {return null;}/ eol:(line_ending) {
+separation = sp:(space) {return null;}
+/ comment:bracket_comment {
+return comment;
+}
+/ eol:(line_ending) {
   if(eol)
     return eol;
   else
    return null;
 }
-
 /*
  * Command Arguments
  * There are three types of arguments within Command Invocations:
@@ -135,16 +149,24 @@ argument = bracket_argument / quoted_argument / unquoted_argument
  */
 
 
-bracket_argument = bracket_open value:bracket_content {return {type: 'bracket_argument', value:value.join('')}}
-bracket_open = '[' s:('='+) '[' {
+bracket_argument = bracket_open value:bracket_content {
+  return {
+  location:location(),
+  type: "bracket_argument", 
+  value:value.join(''),
+  len:bracket_open_size
+  }}
+bracket_open = '[' s:('='*) '[' {
 	bracket_open_size = s.length
   }
 
 bracket_content = 
 	bracket_close &{ return bracket_open_size == bracket_close_size} {return []}  
-  / c:. then:bracket_content {return [c].concat(then) }
+  / c:. then:bracket_content {
+      return [c].concat(then);    
+    }
 
-bracket_close = ']' s:('='+) ']' {bracket_close_size = s.length}
+bracket_close = ']' s:('='*) ']' {bracket_close_size = s.length}
 
 
 /* Quoted Argument
@@ -159,7 +181,13 @@ bracket_close = ']' s:('='+) ']' {bracket_close_size = s.length}
  */ 
  
 /* quoted_argument = '"' quoted_element* '"'*/
-quoted_argument = '"' value:(quoted_element*) '"'  {return {type: 'quoted_argument', value:value.join('')}}
+quoted_argument = '"' value:(quoted_element*) '"'  {
+  return {
+    location: location(),
+    type: "quoted_argument", 
+    value: value.join('')
+  }
+}
  
  quoted_element =  
       [^"\\] 
@@ -175,7 +203,13 @@ quoted_argument = '"' value:(quoted_element*) '"'  {return {type: 'quoted_argume
  * unquoted_element  ::=  <any character except whitespace or one of '()#"\'> |
  *                        escape_sequence
  */
-unquoted_argument = value:(unquoted_element+) {return {type: 'unquoted_argument', value:value.join('')}} 
+unquoted_argument = value:(unquoted_element+) {
+  return {
+    location:location(),
+    type: "unquoted_argument", 
+    value:value.join('')
+  }
+} 
 unquoted_element = [^()#"\\\ \t\r\n] / escape_sequence
 
 /* Escape Sequences
@@ -199,7 +233,14 @@ escape_semicolon = '\\;'
  * bracket_comment ::=  '#' bracket_argument 
  */
 
-bracket_comment = '#' bracket_argument
+bracket_comment = '#' arg:bracket_argument {
+  return {
+    location: location(),
+    type: "bracket_comment",
+    value: arg.value,
+    len: arg.len  
+  }
+}
 
 /* Line Comment
  * 
@@ -209,7 +250,12 @@ bracket_comment = '#' bracket_argument
  *                        and not containing a newline>
  */
 line_comment = '#' value:([^\n\r]*) 
-    { return {type: 'comment', value:value.join('')} }
+    { return {
+      location: location(),
+      type: "comment", 
+      value:value.join('')
+    } 
+  }
     
 
 /* Conditional Blocks
@@ -241,18 +287,21 @@ line_comment = '#' value:([^\n\r]*)
       (file_element*))?
     space* 'endif' space* '(' arguments ')'  {
       return {
-        "type": "if", 
-        "predicate": pred, 
-        "body": body.reduce(function(c, p){return c.concat(p)}, []),
-        "elseif": __elseif.map((array)=>{
+        location: location(),
+        type: "if", 
+        predicate: pred, 
+        body: body.reduce(function(c, p){return c.concat(p)}, []),
+        elseif: __elseif.map((array)=>{
           return {
-            "predicate" : array[4],
-            "body" : array[6].reduce(function(c, p){return c.concat(p)}, [])
+            location: location(),
+            predicate : array[4],
+            body : array[6].reduce(function(c, p){return c.concat(p)}, [])
           }
         }),        
         "else":__else?{
-              "predicate" : __else[4],
-              "body":__else[6].reduce(function(c, p){return c.concat(p)}, [])
+              location: location(),
+              predicate: __else[4],
+              body:__else[6].reduce(function(c, p){return c.concat(p)}, [])
             }:null
       }
     }
@@ -266,12 +315,14 @@ line_comment = '#' value:([^\n\r]*)
     )?
     space* 'endif' space* '(' arguments ')'  {
         return {
-            "type":"if", 
-            "predicate":pred, 
-            "body":body.reduce(function(c, p){return c.concat(p)}, []),
-            "else":__else?{
-              "predicate" : __else[4],
-              "body":__else[6].reduce(function(c, p){return c.concat(p)}, [])
+            location: location(),
+            type:"if", 
+            predicate:pred, 
+            body:body.reduce(function(c, p){return c.concat(p)}, []),
+            else:__else?{
+              location:location(),
+              predicate : __else[4],
+              body:__else[6].reduce(function(c, p){return c.concat(p)}, [])
             }:null
         };
     }
@@ -280,23 +331,45 @@ function_statement =
     space* 'function' space* '(' name:identifier args:arguments ')'
       body:(file_element*)
     space* 'endfunction' space* '('arguments ')' 
-    { return {type: 'function', name:name, arguments:args, 
+    { return {
+      location: location(),
+      type: "function", 
+      name: name,
+      arguments:args, 
         body:body.reduce(function(c, p){return c.concat(p)}, []) } }
     
 macro_statement = 
     space* 'macro' space* '(' name:identifier args:arguments ')'
       body:(file_element*)
     space* 'endmacro' space* '('arguments ')' 
-    { return {type: 'macro', name:name, arguments:args, body:body.reduce(function(c, p){return p.concat(c)}, []) } }
+    { return {
+      location: location(),
+      type: "macro",
+      name: name, 
+      arguments:args, 
+      body:body.reduce(function(c, p){return p.concat(c)}, []) } }
 
 foreach_statement = 
     space* 'foreach' space* '(' args:arguments ')'
       body:(file_element*)
     space* 'endforeach' space* '('arguments ')' 
-    { return {type: 'foreach', arguments:args, body:body.reduce(function(c, p){return p.concat(c)}, []) } }
+    { return {
+      location: location(),
+      type: "foreach", 
+      arguments:args, 
+      body:body.reduce(function(c, p){return p.concat(c)}, []) 
+    } 
+  }
 
 while_statement = 
     space* 'while' space* '(' args:arguments ')'
       body:(file_element*)
     space* 'endwhile' space* '(' arguments ')' 
-    { return {type: 'while', arguments:args, body:body.reduce(function(c, p){return p.concat(c)}, []) } }
+    { return {
+      location: location(),
+      type: "while", 
+      arguments:args, 
+      body:body.reduce(function(c, p){return p.concat(c)}, []) 
+    } 
+  }
+  
