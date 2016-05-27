@@ -284,7 +284,11 @@ function traversAST(ast, matcher) {
 }
 
 
-fs.readFile('test/CMakeLists.txt', 'utf8', function (err,data) {
+var myArgs = process.argv.slice(2);
+ console.log('myArgs: ', myArgs);
+myArgs.forEach(function(element) {
+
+fs.readFile(element, 'utf8', function (err,data) {
   if (err) {
     return console.log(err);
   }
@@ -292,7 +296,19 @@ fs.readFile('test/CMakeLists.txt', 'utf8', function (err,data) {
   var result = CMake.parse(data);
   var formater = new CMakeCodeFormater(FormatConfig);
   traversAST(result, formater);
-  process.stdout.write(formater.result);
+  //process.stdout.write(formater.result);
+  console.log("# " + element)
+   function FindFunctions() {
+             this.func = (elt)=>{
+               console.log("- " +elt.identifier + " : line:" + elt.location.start.line )
+              }
+              this.macro = this.func;
+              this.function = this.func;
+              this.if=(elt)=>{
+                traversAST(elt.body, this);
+              }
+         };
+   traversAST(result, new FindFunctions());
 //  printElements(result);
  // console.log(JSON.stringify(result, null, 2));
   for(var i = 0; i != result.length; ++i){
@@ -306,3 +322,5 @@ fs.readFile('test/CMakeLists.txt', 'utf8', function (err,data) {
   }
 });
 
+  
+});

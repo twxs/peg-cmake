@@ -1,18 +1,43 @@
-# PEGCMake
+# peg-cmake
 
-peg-cmake is a simple [CMake](https://cmake.org/cmake/help/v3.0/manual/cmake-language.7.html#syntax) parser written in javascript.
+peg-cmake is a simple [CMake](https://cmake.org/cmake/help/v3.0/manual/cmake-language.7.html#syntax)  parser written in javascript. 
+It aims to provide a core lib for tools such as formatting, refactoring, etc... 
 
+The library is under developement and not stable.   
 
  ## Usage
  
+ `npm install peg-cmake`
+ 
  ```js
- var CMake = require('../');
+ var CMake = require('peg-cmake');
  var fs = require('fs');
  
+ function traversAST(ast, matcher) {
+    ast.forEach((element)=>{
+        if(matcher[element.type])
+        matcher[element.type](element);
+    });
+}
+
  fs.readFile('CMakeLists.txt', 'utf8', function (err,data) {
   if (!err) {
     try {
-        var AST = CMake.arse(data);
+        var ast = CMake.parse(data);
+        // print all functions defined in the script
+        function FunctionsVisitor() {
+              this._func = (elt)=>{
+               console.log("- " +elt.identifier + " : line:" + elt.location.start.line )
+              }
+              this.macro = this._func;
+              this.function = this._func;
+              this.if=(elt)=>{
+                traversAST(elt.body, this);
+                elt.elseif.foreach((e)=>{traversAST(elt.body, this);});      
+                if(elt.else)traversAST(elt.else.body, this);
+              }
+        };
+        traversAST(result, new FindFunctions());
     }catch(e) {
         console.log(e.name + " line " + e.location.start.line 
         + ", " + e.location.start.column
@@ -21,7 +46,7 @@ peg-cmake is a simple [CMake](https://cmake.org/cmake/help/v3.0/manual/cmake-lan
   }
 });
  
- ```
+```
  
  ## AST
  
