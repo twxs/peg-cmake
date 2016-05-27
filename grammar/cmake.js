@@ -174,7 +174,7 @@ module.exports = (function() {
         peg$c63 = { type: "class", value: "[^\\n\\r]", description: "[^\\n\\r]" },
         peg$c64 = function(value) { return {
               location: location(),
-              type: "comment", 
+              type: "line_comment", 
               value:value.join('')
             } 
           },
@@ -238,13 +238,13 @@ module.exports = (function() {
         peg$c91 = function(name, args, body) { return {
               location: location(),
               type: "function", 
-              name: name,
+              identifier: name,
               arguments:args, 
                 body:body.reduce(function(c, p){return c.concat(p)}, []) } },
         peg$c92 = function(name, args, body) { return {
               location: location(),
               type: "macro",
-              name: name, 
+              identifier: name, 
               arguments:args, 
               body:body.reduce(function(c, p){return p.concat(c)}, []) } },
         peg$c93 = function(args, body) { return {

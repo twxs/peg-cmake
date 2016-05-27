@@ -31,10 +31,10 @@ peg-cmake is a simple [CMake](https://cmake.org/cmake/help/v3.0/manual/cmake-lan
  - `"bracket_argument"` 
  - `"bracket_comment"` 
  - `"command_invocation"`  
- - `"comment"`  
  - `"foreach"`  
  - `"function"`  
  - `"if"`  
+ - `"line_comment"`  
  - `"macro"`  
  - `"newline"`  
  - `"quoted_argument"`  
@@ -65,7 +65,7 @@ peg-cmake is a simple [CMake](https://cmake.org/cmake/help/v3.0/manual/cmake-lan
 </tr>
 <tr>
 <td>
-`comment`
+`line_comment`
 </td>
 <td>
    <pre lang="cmake">
@@ -75,7 +75,7 @@ peg-cmake is a simple [CMake](https://cmake.org/cmake/help/v3.0/manual/cmake-lan
 <td>
   <pre lang="js">
 {
-    "type": "comment",
+    "type": "line_comment",
     "value": " A single line comment"
 }
   </pre>
@@ -211,7 +211,7 @@ endfunction()
     "name": "my_func", 
     "arguments": [ {"type": "unquoted_argument" /*, ...*/} ]
     "body": [
-        { "type" = "comment" /*...*/ }
+        { "type" = "line_comment" /*...*/ }
         ]
 }
 </pre>
@@ -234,7 +234,7 @@ endmacro()
     "name": "my_macro", 
     "arguments": [ {"type": "unquoted_argument" /*, ...*/} ]
     "body": [
-        { "type" = "comment" /*...*/ }
+        { "type" = "line_comment" /*...*/ }
         ]
 }
 </pre>
@@ -258,7 +258,7 @@ endforeach()
     "arguments": [ {"type": "unquoted_argument", "value": "F"}, 
                    {"type": "unquoted_argument", "value": "${FILES}"} ]
     "body": [
-        { "type" = "comment" /*...*/ }
+        { "type" = "line_comment" /*...*/ }
         ]
 }
 </pre>
@@ -281,7 +281,7 @@ endwhile()
     "arguments": [ {"type": "unquoted_argument", "value": "F"}, 
                    {"type": "unquoted_argument", "value": "${FILES}"} ]
     "body": [
-        { "type" = "comment" /*...*/ }
+        { "type" = "line_comment" /*...*/ }
         ]
 }
 </pre>

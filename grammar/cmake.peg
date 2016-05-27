@@ -252,7 +252,7 @@ bracket_comment = '#' arg:bracket_argument {
 line_comment = '#' value:([^\n\r]*) 
     { return {
       location: location(),
-      type: "comment", 
+      type: "line_comment", 
       value:value.join('')
     } 
   }
@@ -334,7 +334,7 @@ function_statement =
     { return {
       location: location(),
       type: "function", 
-      name: name,
+      identifier: name,
       arguments:args, 
         body:body.reduce(function(c, p){return c.concat(p)}, []) } }
     
@@ -345,7 +345,7 @@ macro_statement =
     { return {
       location: location(),
       type: "macro",
-      name: name, 
+      identifier: name, 
       arguments:args, 
       body:body.reduce(function(c, p){return p.concat(c)}, []) } }
 
