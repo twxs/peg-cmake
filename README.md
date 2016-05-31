@@ -58,6 +58,7 @@ The library is under developement and not stable.
  - `"command_invocation"`  
  - `"foreach"`  
  - `"function"`  
+ - `"identifier"`  
  - `"if"`  
  - `"line_comment"`  
  - `"macro"`  
@@ -233,7 +234,7 @@ endfunction()
 <pre lang="js">
 {
     "type": "function", 
-    "name": "my_func", 
+    "identifier": {type:"identifier", value:"my_func"}, 
     "arguments": [ {"type": "unquoted_argument" /*, ...*/} ]
     "body": [
         { "type" = "line_comment" /*...*/ }

@@ -296,7 +296,7 @@ fs.readFile(element, 'utf8', function (err,data) {
   var result = CMake.parse(data);
   var formater = new CMakeCodeFormater(FormatConfig);
   traversAST(result, formater);
-  //process.stdout.write(formater.result);
+  process.stdout.write(formater.result);
   console.log("# " + element)
    function FindFunctions() {
              this.func = (elt)=>{

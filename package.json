@@ -1,6 +1,6 @@
 {
   "name": "peg-cmake",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "PEG.js CMake parser",
   "main": "index.js",
   "devDependencies": {

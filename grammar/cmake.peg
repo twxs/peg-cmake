@@ -92,7 +92,13 @@ command_invocation = space* name:identifier space* '(' args:arguments ')'
 } 
 
 identifier = !reserved_word first:[A-Za-z_](second:[A-Za-z0-9_]*) 
-    { return first + second.join('') }
+    { 
+    return {
+       location:location(),
+       type:"identifier",
+       value: first + second.join('') 
+    }
+    }
 
 arguments = first:argument? others:(separated_arguments*) {
     if (!first) {

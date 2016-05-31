@@ -8,7 +8,7 @@
 			"request": "launch",
 			"program": "${workspaceRoot}/test/cmake-format.js",
 			"stopOnEntry": false,
-			"args": [],
+			"args": ["test/CMakeLists.txt"],
 			"cwd": "${workspaceRoot}",
 			"runtimeExecutable": null,
 			"runtimeArgs": [

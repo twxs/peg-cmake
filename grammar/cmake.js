@@ -74,7 +74,13 @@ module.exports = (function() {
         peg$c16 = { type: "class", value: "[A-Za-z_]", description: "[A-Za-z_]" },
         peg$c17 = /^[A-Za-z0-9_]/,
         peg$c18 = { type: "class", value: "[A-Za-z0-9_]", description: "[A-Za-z0-9_]" },
-        peg$c19 = function(first, second) { return first + second.join('') },
+        peg$c19 = function(first, second) { 
+            return {
+               location:location(),
+               type:"identifier",
+               value: first + second.join('') 
+            }
+            },
         peg$c20 = function(first, others) {
             if (!first) {
                 return others.reduce( function(p, c){return p.concat(c);}, []);
