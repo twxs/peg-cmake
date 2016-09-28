@@ -64,6 +64,7 @@ The library is under developement and not stable.
  - `"macro"`  
  - `"newline"`  
  - `"quoted_argument"`  
+ - `"script"`  
  - `"unquoted_argument"`  
  - `"while"`  
  
@@ -317,12 +318,15 @@ endwhile()
 
 </table>
 
-
+# Release notes
+### 0.0.6
+- fix : 
+```
+CMake versions prior to 2.8.12 silently accept an Unquoted Argument or a Quoted Argument immediately following a Quoted Argument and not separated by any whitespace. For compatibility, CMake 2.8.12 and higher accept such code but produce a warning.
+```
+- add experimental cmake formater 
 
 # Known Issues
 
 - Thes buffer must end with "\n", as a workaround the parse function append a new line to the buffer passed as argument.
-- need tests :
-```
-CMake versions prior to 2.8.12 silently accept an Unquoted Argument or a Quoted Argument immediately following a Quoted Argument and not separated by any whitespace. For compatibility, CMake 2.8.12 and higher accept such code but produce a warning.
-```
+

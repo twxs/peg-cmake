@@ -209,11 +209,18 @@ quoted_argument = '"' value:(quoted_element*) '"'  {
  * unquoted_element  ::=  <any character except whitespace or one of '()#"\'> |
  *                        escape_sequence
  */
-unquoted_argument = value:(unquoted_element+) {
+unquoted_argument_remainder = value:(unquoted_element / quoted_argument) {
+  if(typeof(value) === "string")
+    return value;
+  else 
+    return '"' + value.value + '"';
+}
+unquoted_argument = first:unquoted_element values:(unquoted_argument_remainder*) {
   return {
     location:location(),
+    v:values,
     type: "unquoted_argument", 
-    value:value.join('')
+    value:first+values.join('')
   }
 } 
 unquoted_element = [^()#"\\\ \t\r\n] / escape_sequence

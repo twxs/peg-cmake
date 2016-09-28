@@ -49,7 +49,9 @@ module.exports = {
     'single line comment' : function(test) {
         var expected ='if()endif()';
         var actual = cmake.parse('#'+expected+'\n');
-        test.equal(expected, actual);
+        console.log(actual[0].type);
+        test.equal('line_comment', actual[0].type);
+        test.equal(expected, actual[0].value);
         test.ok(true);
         test.done();
     }, 
@@ -61,10 +63,13 @@ module.exports = {
         test.done();
     }, 
     'two lines comment' : function(test) {
-        var expected ='if()endif()';
-        var actual = cmake.parse('#'+expected+'\n'+'#'+expected+'\n');
-        
-        test.deepEqual([expected, expected], actual);
+        var expected ='if() endif()';
+        var ast = cmake.parse('#'+expected+'\n'+'#'+expected+'\n');
+       
+        test.equal('line_comment', ast[0].type);
+        test.equal(expected, ast[0].value);
+        test.equal('line_comment', ast[1].type);
+        test.equal(expected, ast[1].value);
         test.done();
     }, 
     'if_statement' : function(test) {
@@ -73,4 +78,13 @@ module.exports = {
         
         test.done();
     }, 
+    'Quoted In Unquote' : function(test) {
+        var expected ='set(VAR"str" )\n';
+        console.log("before");
+        var ast = cmake.parse(expected);
+        console.log("after");
+        
+        test.ok(true);
+        test.done();
+    },
 };

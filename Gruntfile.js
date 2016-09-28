@@ -12,7 +12,7 @@ module.exports = function (grunt) {
             
             all: ['test/*_test.js'],
             options: {
-                reporter: 'junit',
+                reporter: 'default',
                 reporterOptions: {
                     output: 'outputdir'
                 }

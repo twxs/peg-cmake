@@ -1,6 +1,1 @@
-macro(test)
-  
-endmacro()
-
-
-message("\\, ")
+set(VAR"str" )
