@@ -1,6 +1,6 @@
 {
   "name": "peg-cmake",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "PEG.js CMake parser",
   "main": "lib/peg-cmake",
   "typings": "lib/peg-cmake.d.ts",
