@@ -1,5 +1,8 @@
 # peg-cmake
 
+[![Build Status](https://travis-ci.org/twxs/peg-cmake.svg?branch=master)](https://travis-ci.org/twxs/peg-cmake)
+
+
 peg-cmake is a simple [CMake](https://cmake.org/cmake/help/v3.0/manual/cmake-language.7.html#syntax)  parser written in javascript. 
 It aims to provide a core lib for tools such as formatting, refactoring, etc... 
 
